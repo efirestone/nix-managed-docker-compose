@@ -11,7 +11,7 @@
     ];
 
     overlayList = [ self.overlays.default ];
-  in rec {
+  in {
     # A Nixpkgs overlay that provides a 'managed-docker-compose' package.
     overlays.default = final: prev: { managed-docker-compose = final.callPackage ./package.nix {}; };
 
@@ -21,5 +21,23 @@
     });
 
     nixosModules = import ./nixos-modules { overlays = overlayList; };
+
+    nixosConfigurations = forEachSystem (system: {
+
+      # should be able to build this by running:
+      # `nix build .nixosConfigurations.x86_64-linux.hello-world.config.system.build.toplevel`
+      # but the above will probably fail since no bootloader or file systems have been added to the config
+      # so instead we can build it as a vm:
+      # `nix build .#nixosConfigurations.x86_64-linux.hello-world.config.system.build.vm`
+      # run it with:
+      # `./result/bin/run-nixos-vm`
+      hello-world = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          ./examples/hello-world-configuration.nix
+        ];
+      };
+
+    });
   };
 }
