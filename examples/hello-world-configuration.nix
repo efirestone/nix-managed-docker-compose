@@ -18,8 +18,8 @@
   environment.etc."docker-compose/hello/docker-compose.yaml".text = 
     ''
     services:
-      hello:
-        image: hello-world
+      hello_world:
+        image: docker.io/hello-world
     '';
 
   # and now enable our custom module
