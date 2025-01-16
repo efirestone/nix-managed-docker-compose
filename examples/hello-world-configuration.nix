@@ -7,6 +7,24 @@
 # Then connect with ssh -p 2222 guest@localhost
 { lib, config, pkgs, ... }:
 {
+
+  virtualisation.docker.enable = true;
+
+  environment.systemPackages = with pkgs; [ 
+    docker
+    docker-compose
+  ];
+
+  environment.etc."docker-compose/hello/docker-compose.yaml".text = 
+    ''
+    services:
+      hello:
+        image: hello-world
+    '';
+
+  # and now enable our custom module
+  services.managed-docker-compose.enable = true;
+
   # Internationalisation options
   i18n.defaultLocale = "en_US.UTF-8";
 
@@ -40,8 +58,6 @@
 
   # Enable ssh
   services.sshd.enable = true;
-
-  environment.systemPackages = [ pkgs.cowsay ];
 
   system.stateVersion = "24.11";
 }

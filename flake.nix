@@ -34,6 +34,10 @@
       hello-world = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
+          
+          # include our module
+          self.outputs.nixosModules.managed-docker-compose
+
           ./examples/hello-world-configuration.nix
         ];
       };
