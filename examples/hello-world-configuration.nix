@@ -15,11 +15,15 @@
     docker-compose
   ];
 
+  # got a small docker compose from here:
+  #  https://stackoverflow.com/questions/71719908/what-is-the-smallest-image-that-can-be-used-to-leave-docker-compose-running-inde
   environment.etc."docker-compose/hello/docker-compose.yaml".text = 
     ''
+    version: '3.9'
     services:
-      hello_world:
-        image: docker.io/hello-world
+      myservice:
+        image: registry.hub.docker.com/alpine:latest
+        command: tail -f /dev/null
     '';
 
   # and now enable our custom module
@@ -50,7 +54,7 @@
   users.users.guest = {
     isNormalUser = true;
     home = "/home/guest";
-    extraGroups = [ "wheel" ];
+    extraGroups = [ "wheel" "docker" ];
     initialPassword = "guest";
   };
 
