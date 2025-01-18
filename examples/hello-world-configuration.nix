@@ -63,5 +63,12 @@
   # Enable ssh
   services.sshd.enable = true;
 
+
+  
+  # Stub options (mostly only necessary to get `nix flake check` to work, since this config is usually only run in a vm`)
+  fileSystems."/".device = "/dev/sda";
+  boot.loader.grub.devices = [ "/" ];
+
   system.stateVersion = "24.11";
+
 }

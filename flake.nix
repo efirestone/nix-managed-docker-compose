@@ -6,7 +6,9 @@
   outputs = { self, nixpkgs }:
   let
     forEachSystem = nixpkgs.lib.genAttrs [ 
+      # "aarch64-darwin"
       "aarch64-linux"
+      # "x86_64-darwin"
       "x86_64-linux"
     ];
 
@@ -39,9 +41,15 @@
           self.outputs.nixosModules.managed-docker-compose
 
           ./examples/hello-world-configuration.nix
+
         ];
       };
+      default = self.nixosConfiguration.${system}.hello-world;
 
-    });
+      # the following line is necessary to make nix flake check happy
+      config.system.build.toplevel = self.nixosConfigurations.${system}.hello-world.config.system.build.toplevel;
+
+      # the following line with // will concat the attrs
+    }) // { hello-world = self.nixosConfigurations.x86_64-linux.hello-world; };
   };
 }
