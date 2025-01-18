@@ -24,34 +24,6 @@
 
     nixosModules = import ./nixos-modules { overlays = overlayList; };
 
-    nixosConfigurations = forEachSystem (system: {
-
-      # should be able to build this by running:
-      # `nix build .nixosConfigurations.x86_64-linux.hello-world.config.system.build.toplevel`
-      # but the above will probably fail since no bootloader or file systems have been added to the config
-      # so instead we can build it as a vm:
-      # `nix build .#nixosConfigurations.x86_64-linux.hello-world.config.system.build.vm`
-      # run it with:
-      # `./result/bin/run-nixos-vm`
-      hello-world = nixpkgs.lib.nixosSystem {
-        inherit system;
-        modules = [
-          
-          # include our module
-          self.outputs.nixosModules.managed-docker-compose
-
-          ./examples/hello-world-configuration.nix
-
-        ];
-      };
-      default = self.nixosConfiguration.${system}.hello-world;
-
-      # the following line is necessary to make nix flake check happy
-      config.system.build.toplevel = self.nixosConfigurations.${system}.hello-world.config.system.build.toplevel;
-
-      # the following line with // will concat the attrs
-    }) // { hello-world = self.nixosConfigurations.x86_64-linux.hello-world; };
-
     checks = forEachSystem (system: {
       moduleTest = nixpkgs.legacyPackages.${system}.testers.runNixOSTest {
         name = "moduleTest";
