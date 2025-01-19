@@ -23,6 +23,12 @@
     nixosModules = import ./nixos-modules { overlays = overlayList; };
 
     checks = forEachSystem (system: {
+      # see: https://blog.thalheim.io/2023/01/08/how-to-execute-nixos-tests-interactively-for-debugging/
+      # can run this test interactively by:
+      # `nix run .#checks.x86_64-linux.moduleTest.driver -- --interactive`
+      # then after being dropped into python shell:
+      # >>> machine1.wait_for_unit("default.target")
+      # >>> machine1.shell_interact()
       moduleTest = nixpkgs.legacyPackages.${system}.testers.runNixOSTest {
         name = "moduleTest";
         nodes.machine1 = {
