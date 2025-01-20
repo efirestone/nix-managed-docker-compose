@@ -23,51 +23,92 @@
     nixosModules = import ./nixos-modules { overlays = overlayList; };
 
     checks = forEachSystem (system: {
-      # see: https://blog.thalheim.io/2023/01/08/how-to-execute-nixos-tests-interactively-for-debugging/
-      # can run this test interactively by:
-      # `nix run .#checks.x86_64-linux.moduleTest.driver -- --interactive`
+      # To run the tests: nix flake check --all-systems
+      # You may also want the -L and --verbose flags for additional debugging.
+      #
+      # TO run the tests interactively:
+      # `nix run .#checks.x86_64-linux.dockerTest.driver -- --interactive`
       # then after being dropped into python shell:
-      # >>> machine1.wait_for_unit("default.target")
-      # >>> machine1.shell_interact()
-      moduleTest = nixpkgs.legacyPackages.${system}.testers.runNixOSTest {
-        name = "moduleTest";
-        nodes.machine1 = {
+      # >>> machine.wait_for_unit("default.target")
+      # >>> machine.shell_interact()
+      #
+      # see: https://blog.thalheim.io/2023/01/08/how-to-execute-nixos-tests-interactively-for-debugging/
+      dockerTest = nixpkgs.legacyPackages.${system}.testers.runNixOSTest {
+        name = "dockerTest";
+        nodes.machine = {
           imports = [ self.outputs.nixosModules.managed-docker-compose ];
 
-          # enable our custom module
-          services.managed-docker-compose.enable = true;
-
-          # our module requires these things (maybe it should enable them itself too?)
-          virtualisation.docker.enable = true;
           environment.systemPackages = with nixpkgs.legacyPackages.${system}; [ 
             docker
             docker-compose
           ];
 
-          # A default user able to use sudo
-          users.users.guest = {
-            isNormalUser = true;
-            home = "/home/guest";
-            extraGroups = [ "wheel" "docker" ];
-            initialPassword = "guest";
-          };
+          # enable our custom module
+          services.managed-docker-compose.enable = true;
 
-          security.sudo.wheelNeedsPassword = false;
+          # our module requires these things (maybe it should enable them itself too?)
+          virtualisation.oci-containers.backend = "docker";
+          virtualisation.containers.enable = true;
+          virtualisation.docker.enable = true;
 
           # Run a very lightweight image, but also one that doesn't immediately exit.
-          environment.etc."docker-compose/hello/docker-compose.yaml".text = 
+          environment.etc."docker-compose/test/docker-compose.yaml".text = 
             ''
             services:
               myservice:
-                image: docker.io/alpine:latest
-                command: tail -f /dev/null
+                image: testimg
+                command: /bin/tail -f /dev/null
+                volumes:
+                  # Map the bin from the current system in so that we can execute `tail`
+                  - /nix/store:/nix/store
+                  - /run/current-system/sw/bin:/bin
             '';
         };
-        # TODO: need to make this into a non-trivial test!
-        #       see: https://vtimofeenko.com/posts/practical-nix-flake-anatomy-a-guided-tour-of-flake.nix/#checks
         testScript = ''
-          machine.wait_for_unit("default.target")
-          assert "hello" == "hello"
+          machine.wait_for_unit("managed-docker-compose.service")
+          
+          # Create a fake image to run
+          machine.succeed("tar cv --files-from /dev/null | docker import - testimg")
+          machine.wait_until_succeeds("docker ps --format='{{ .Image }}' | grep 'testimg'")
+        '';
+      };
+
+      podmanTest = nixpkgs.legacyPackages.${system}.testers.runNixOSTest {
+        name = "podmanTest";
+        nodes.machine = {
+          imports = [ self.outputs.nixosModules.managed-docker-compose ];
+
+          environment.systemPackages = with nixpkgs.legacyPackages.${system}; [ 
+            podman
+            podman-compose
+          ];
+
+          # enable our custom module
+          services.managed-docker-compose.enable = true;
+
+          # our module requires these things (maybe it should enable them itself too?)
+          virtualisation.oci-containers.backend = "podman";
+          virtualisation.podman.enable = true;
+
+          # Run a very lightweight image, but also one that doesn't immediately exit.
+          environment.etc."docker-compose/test/docker-compose.yaml".text = 
+            ''
+            services:
+              myservice:
+                image: testimg
+                command: /bin/tail -f /dev/null
+                volumes:
+                  # Map the bin from the current system in so that we can execute `tail`
+                  - /nix/store:/nix/store
+                  - /run/current-system/sw/bin:/bin
+            '';
+        };
+        testScript = ''
+          machine.wait_for_unit("managed-docker-compose.service")
+          
+          # Create a fake image to run
+          machine.succeed("tar cv --files-from /dev/null | podman import - testimg")
+          machine.wait_until_succeeds("podman ps --format='{{ .Image }}' | grep 'testimg'")
         '';
       };
     });
