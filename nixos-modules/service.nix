@@ -10,6 +10,17 @@ with lib;
 let
   cfg = config.services.managed-docker-compose;
   managed-docker-compose = pkgs.callPackage ../package.nix {};
+  backendStr = if cfg.backend == "podman" then "podman"
+    else if cfg.backend == "docker" then "docker"
+    else if cfg.backend == "" then config.virtualisation.oci-containers.backend
+    else throw "Invalid docker compose backend: ${cfg.backend}";
+  envSysPackages = if backendStr == "podman" then [
+      pkgs.podman
+      pkgs.podman-compose
+    ] else [
+      pkgs.docker
+      pkgs.docker-compose
+    ];
 in {
   options = {
     services.managed-docker-compose = rec {
@@ -25,28 +36,24 @@ in {
   };
 
   config = mkIf cfg.enable {
-    environment.systemPackages = [ managed-docker-compose ];
+    
+    # Give system the right packages, including our own
+    environment.systemPackages = [ managed-docker-compose ] ++ envSysPackages;
+
+    # Setup the right virtualisation modules depending on backend.
+    virtualisation.docker.enable = mkIf (backendStr == "docker") true;
+    virtualisation.containers.enable = mkIf (backendStr == "docker") true;
+    virtualisation.podman.enable = mkIf (backendStr == "podman") true;
 
     # Run the docker-compose-update.sh script each time we activate/deploy.
-    systemd.services.managed-docker-compose = let
-      backend = if cfg.backend == "podman" then "podman"
-        else if cfg.backend == "docker" then "docker"
-        else if cfg.backend == "" then config.virtualisation.oci-containers.backend
-        else throw "Invalid docker compose backend: ${cfg.backend}";
-    in {
+    systemd.services.managed-docker-compose = {
       description = "Update Docker Compose files as part of nix config";
       wantedBy = [ "multi-user.target" ];
       startAt = "post-activation";
       environment = {
-        DOCKER_BACKEND = backend;
+        DOCKER_BACKEND = backendStr;
       };
-      path = if backend == "podman" then [
-        pkgs.podman
-        pkgs.podman-compose
-      ] else [
-        pkgs.docker
-        pkgs.docker-compose
-      ];
+      path = envSysPackages;
       serviceConfig = {
         Type = "simple";
         ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh";
