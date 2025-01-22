@@ -38,18 +38,9 @@
         nodes.machine = {
           imports = [ self.outputs.nixosModules.managed-docker-compose ];
 
-          environment.systemPackages = with nixpkgs.legacyPackages.${system}; [ 
-            docker
-            docker-compose
-          ];
-
           # enable our custom module
           services.managed-docker-compose.enable = true;
-
-          # our module requires these things (maybe it should enable them itself too?)
           virtualisation.oci-containers.backend = "docker";
-          virtualisation.containers.enable = true;
-          virtualisation.docker.enable = true;
 
           # Run a very lightweight image, but also one that doesn't immediately exit.
           environment.etc."docker-compose/test/docker-compose.yaml".text = 
@@ -78,17 +69,8 @@
         nodes.machine = {
           imports = [ self.outputs.nixosModules.managed-docker-compose ];
 
-          environment.systemPackages = with nixpkgs.legacyPackages.${system}; [ 
-            podman
-            podman-compose
-          ];
-
           # enable our custom module
           services.managed-docker-compose.enable = true;
-
-          # our module requires these things (maybe it should enable them itself too?)
-          virtualisation.oci-containers.backend = "podman";
-          virtualisation.podman.enable = true;
 
           # Run a very lightweight image, but also one that doesn't immediately exit.
           environment.etc."docker-compose/test/docker-compose.yaml".text = 
