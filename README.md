@@ -11,7 +11,7 @@ If you use flakes, add the following lines to your flake.nix:
 ```
 {
   inputs {
-    managed-docker-compose.url = "github:efirestone/nix-managed-docker-compose/main";
+    managed-docker-compose.url = "github:efirestone/nix-managed-docker-compose/0.1.0";
     nixpkgs.url = "nixpkgs/nixos-24.11";
   };
 
