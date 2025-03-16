@@ -5,6 +5,6 @@ writeTextFile {
   executable = true;
   destination = "/bin/docker-compose-update.sh";
   text = ''
-    #!${pkgs.runtimeShell}
-  '' + builtins.readFile ./docker-compose-update.sh;
+    #!${pkgs.python3}/bin/python3
+  '' + builtins.readFile ./script/dockercomposeupdate.py;
 }

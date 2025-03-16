@@ -15,9 +15,11 @@ let
     else if cfg.backend == "" then config.virtualisation.oci-containers.backend
     else throw "Invalid docker compose backend: ${cfg.backend}";
   envSysPackages = if backendStr == "podman" then [
+      pkgs.python3
       pkgs.podman
       pkgs.podman-compose
     ] else [
+      pkgs.python3
       pkgs.docker
       pkgs.docker-compose
     ];
@@ -45,18 +47,15 @@ in {
     virtualisation.containers.enable = mkIf (backendStr == "docker") true;
     virtualisation.podman.enable = mkIf (backendStr == "podman") true;
 
-    # Run the docker-compose-update.sh script each time we activate/deploy.
+    # Run the docker-compose-update.py script each time we activate/deploy.
     systemd.services.managed-docker-compose = {
       description = "Update Docker Compose files as part of nix config";
       wantedBy = [ "multi-user.target" ];
       startAt = "post-activation";
-      environment = {
-        DOCKER_BACKEND = backendStr;
-      };
       path = envSysPackages;
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh";
+        ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh ${backendStr}";
         TimeoutSec = 90;
       };
     };
