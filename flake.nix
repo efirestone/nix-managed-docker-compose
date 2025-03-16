@@ -25,14 +25,6 @@
     checks = forEachSystem (system: {
       # To run the tests: nix flake check --all-systems
       # You may also want the -L and --verbose flags for additional debugging.
-      #
-      # TO run the tests interactively:
-      # `nix run .#checks.x86_64-linux.dockerTest.driver -- --interactive`
-      # then after being dropped into python shell:
-      # >>> machine.wait_for_unit("default.target")
-      # >>> machine.shell_interact()
-      #
-      # see: https://blog.thalheim.io/2023/01/08/how-to-execute-nixos-tests-interactively-for-debugging/
       dockerTest = nixpkgs.legacyPackages.${system}.testers.runNixOSTest {
         name = "dockerTest";
         nodes.machine = {

@@ -139,7 +139,7 @@ You can get an interactive shell for both the test environment, and the VMs with
 To run the Python test script interactively (this is for the `dockerTest` test on an `x86_64` machine):
 
 ```
-nix run .#checks.x86_64-linux.dockerTest.driver -- --interactive`
+nix run .#checks.x86_64-linux.dockerTest.driver -- --interactive
 ```
 
 From here you can test various test helper commands.
