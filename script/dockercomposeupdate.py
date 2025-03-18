@@ -93,6 +93,7 @@ def main():
     running_compose_files = app.collect_compose_files_for_running_containers(args.backend, command_runner, file_system)
 
     print(f"Current files: {current_compose_files}")
+    print(f"Running files: {running_compose_files}")
     
     stale_compose_files = sorted(set(running_compose_files) - set(current_compose_files))
 
