@@ -77,62 +77,33 @@ class Application:
 
         return sorted(compose_files)
 
-    def collect_current_compose_files(self, directory: str):
-        """Finds all docker-compose files in a directory, recursively.
-
-        Args:
-            directory (str): The directory to search within.
-
-        Returns:
-            list[Path]: A list of matching file paths.
-        """
-
-        dir = Path(directory)
-        if not dir.is_dir():
-            raise ValueError(f"Provided path '{directory}' is not a valid directory.")
-
-        matches = []
-        patterns = {
-            "compose.yml",
-            "compose.yaml",
-            "container-compose.yml",
-            "container-compose.yaml",
-            "docker-compose.yml",
-            "docker-compose.yaml",
-        }
-
-        for path in dir.walk():
-            for file in path[2]:
-                if file in patterns:
-                    full_path = posixpath.join(path[0], file)
-                    matches.append(str(full_path))
-
-        return sorted(matches)
-
 def main():
     parser = argparse.ArgumentParser(description="Update running Docker containers to match the compose files in /etc/docker-compose.")
-    parser.add_argument("docker_backend", help="The Docker command to use ('docker' or 'podman')")
+    parser.add_argument("-b", "--backend", help="The Docker command to use ('docker' or 'podman')")
+    parser.add_argument("-f", "--compose_file", help="The path to a Docker Compose file", nargs="*")
     args = parser.parse_args()
 
-    ETC_DIR = "/etc/docker-compose"
-    print(f"Running docker compose script using {args.docker_backend}")
+    print(f"Running docker compose script using {args.backend}")
 
     app = Application()
     command_runner = RealCommandRunner()
     file_system = RealFileSystem()
 
-    current_compose_files = app.collect_current_compose_files(ETC_DIR)
-    running_compose_files = app.collect_compose_files_for_running_containers(args.docker_backend, command_runner, file_system)
+    current_compose_files = args.compose_file
+    running_compose_files = app.collect_compose_files_for_running_containers(args.backend, command_runner, file_system)
 
+    print(f"Current files: {current_compose_files}")
+    print(f"Running files: {running_compose_files}")
+    
     stale_compose_files = sorted(set(running_compose_files) - set(current_compose_files))
 
     for compose_file in stale_compose_files:
         print(f"Unloading: {compose_file}")
-        command_runner.run(args.docker_backend, "compose", "--file", compose_file, "down")
+        command_runner.run(args.backend, "compose", "--file", compose_file, "down")
 
     for compose_file in current_compose_files:
         print(f"Loading: {compose_file}")
-        command_runner.run(args.docker_backend, "compose", "--file", compose_file, "up", "--detach")
+        command_runner.run(args.backend, "compose", "--file", compose_file, "up", "--detach")
 
 if __name__ == "__main__":
     main()
