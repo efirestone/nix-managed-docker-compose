@@ -14,6 +14,7 @@ let
     else if cfg.backend == "docker" then "docker"
     else if cfg.backend == "" then config.virtualisation.oci-containers.backend
     else throw "Invalid docker compose backend: ${cfg.backend}";
+  composeFiles = mapAttrsToList (name: appCfg: appCfg.compose_file) cfg.applications;
   envSysPackages = if backendStr == "podman" then [
       pkgs.python3
       pkgs.podman
@@ -34,6 +35,19 @@ in {
           The virtualisation backend to use (either \"docker\" or \"podman\"). Defaults to virtualisation.oci-containers.backend.
         '';
       };
+
+      applications = mkOption {
+        type = types.attrsOf (types.submodule ({
+          options = {
+            compose_file = mkOption {
+              type = types.path;
+              description = "Path to the Docker Compose file.";
+            };
+          };
+        }));
+        default = {};
+        description = "Set of managed Docker Compose applications.";
+      };
     };
   };
 
@@ -51,11 +65,10 @@ in {
     systemd.services.managed-docker-compose = {
       description = "Update Docker Compose files as part of nix config";
       wantedBy = [ "multi-user.target" ];
-      startAt = "post-activation";
       path = envSysPackages;
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh ${backendStr}";
+        ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh -b ${backendStr} ${concatStringsSep " " (map (file: "-f \"${file}\"") composeFiles)}";
         TimeoutSec = 90;
       };
     };
