@@ -98,7 +98,7 @@ class Application:
 def main():
     parser = argparse.ArgumentParser(description="Update running Docker containers to match the compose files in /etc/docker-compose.")
     parser.add_argument("-b", "--backend", help="The Docker command to use ('docker' or 'podman')")
-    parser.add_argument("-f", "--compose_file", help="The path to a Docker Compose file", nargs="*")
+    parser.add_argument("-f", "--compose_file", help="The path to a Docker Compose file", action='append')
     args = parser.parse_args()
 
     print(f"Running docker compose script using {args.backend}")
