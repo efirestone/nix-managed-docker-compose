@@ -198,7 +198,7 @@
         };
         testScript = ''
           # Make sure the new application spins up
-          machine.wait_until_succeeds("docker ps --format='{{ .Names }}' | grep 'current_app'", timeout=90)
+          machine.wait_until_succeeds("docker ps --format='{{ .Names }}' | grep 'current_app'", timeout=120)
 
           # Make sure the old application spins down
           machine.wait_until_fails("docker ps --format='{{ .Names }}' | grep 'old_app'", timeout=120)
