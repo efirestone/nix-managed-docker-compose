@@ -56,7 +56,7 @@
           virtualisation.oci-containers.backend = "docker";
 
           # Run a very lightweight image, but also one that doesn't immediately exit.
-          environment.etc."docker-compose/test/compose.yaml".text = 
+          environment.etc."docker-compose/test/compose.yaml".text =
             ''
             services:
               myservice:
@@ -99,7 +99,7 @@
           };
 
           # Run a very lightweight image, but also one that doesn't immediately exit.
-          environment.etc."docker-compose/test/compose.yaml".text = 
+          environment.etc."docker-compose/test/compose.yaml".text =
             ''
             services:
               myservice:
@@ -164,7 +164,7 @@
           };
 
           # Run a very lightweight image, but also one that doesn't immediately exit.
-          environment.etc."docker-compose/current_app/compose.yaml".text = 
+          environment.etc."docker-compose/current_app/compose.yaml".text =
             ''
             services:
               current_app:
@@ -183,7 +183,7 @@
           # In the future we should only spin do applications that have a specific label (which we add)
           # so that it's still possible for other services to use Docker Compose, but for now we'll
           # assume that only managed-docker-compose is running Docker Compose.
-          environment.etc."docker-compose/old_app/compose.yaml".text = 
+          environment.etc."docker-compose/old_app/compose.yaml".text =
             ''
             services:
               old_app:
@@ -198,11 +198,58 @@
         };
         testScript = ''
           # Make sure the new application spins up
-          machine.wait_until_succeeds("docker ps --format='{{ .Names }}' | grep 'current_app'", timeout=120)
+          machine.wait_until_succeeds("docker ps --format='{{ .Names }}' | grep 'current_app'")
 
           # Make sure the old application spins down
-          machine.wait_until_fails("docker ps --format='{{ .Names }}' | grep 'old_app'", timeout=120)
+          machine.wait_until_fails("docker ps --format='{{ .Names }}' | grep 'old_app'")
         '';
+      };
+
+      substitutionTest = runTest {
+          name = "substitutionTest";
+          nodes.machine = {
+            imports = [ self.outputs.nixosModules.managed-docker-compose ];
+
+            # enable our custom module
+            services.managed-docker-compose.enable = true;
+
+            virtualisation.oci-containers.backend = "docker";
+
+            services.managed-docker-compose.applications.test_app = let
+              composeFile = pkgs.writeText "compose.yml"
+                ''
+                services:
+                  myservice:
+                    image: @image_name@
+                    command: /bin/tail -f /dev/null
+                    network_mode: none
+                    volumes:
+                      # Map the bin from the current system in so that we can execute `tail`
+                      - /nix/store:/nix/store
+                      - /run/current-system/sw/bin:/bin
+                '';
+            in {
+              compose_file = composeFile;
+              substitutions = {
+                image_name = "testimg";
+              };
+            };
+
+            # Create a fake Docker image that we can "run"
+            systemd.services.create-fake-docker-image = {
+              description = "Create fake Docker image";
+              before = [ "managed-docker-compose.service" ];
+              requiredBy = [ "managed-docker-compose.service" ];
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = "/bin/sh -c '${pkgs.gnutar}/bin/tar cv --files-from /dev/null | ${pkgs.docker}/bin/docker import - testimg'";
+                TimeoutSec = 90;
+              };
+            };
+          };
+          testScript = ''
+            machine.wait_until_succeeds("docker ps --format='{{ .Image }}' | grep 'testimg'")
+          '';
       };
     });
   };
