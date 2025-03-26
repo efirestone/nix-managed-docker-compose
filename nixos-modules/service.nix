@@ -17,6 +17,9 @@ let
     else if cfg.backend == "" then config.virtualisation.oci-containers.backend
     else throw "Invalid docker compose backend: ${cfg.backend}";
 
+
+  resolveSubstitutions = import ../resolve-substitutions.nix;
+
   composeFiles = lib.mapAttrsToList (name: appCfg:
     if lib.isAttrs appCfg.substitutions && appCfg.substitutions == {} then
       appCfg.compose_file
@@ -28,10 +31,11 @@ let
         You provided: ${toString appCfg.compose_file}
         Hint: use a Nix path like ./path/to/file instead of a string like "/etc/compose.yml"
       ''
-    else
-      pkgs.substituteAll ({
-        src = appCfg.compose_file;
-      } // appCfg.substitutions)
+    else let 
+      content = builtins.readFile appCfg.compose_file;
+      resolved = resolveSubstitutions content appCfg.substitutions;
+    in
+      pkgs.writeText "compose.yml" resolved
 ) cfg.applications;
 
   envSysPackages = if backendStr == "podman" then [
