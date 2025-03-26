@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     name: Build Nix targets
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Check Nix flake inputs
@@ -14,7 +14,9 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v3
       - name: Run nix flake checks
-        run: nix flake check --all-systems -L
+        # Run these serially (--max-jobs 1) to avoid them competing with each
+        # other for the Docker socket or the managed-docker-compose.service.
+        run: nix flake check --all-systems --max-jobs 1 -L
   test:
     name: Run Python tests
     runs-on: ubuntu-24.04
