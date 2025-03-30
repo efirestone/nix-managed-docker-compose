@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Flake Tests",
+            "type": "shell",
+            "command": "nix flake check --all-systems --max-jobs 1 --show-trace -L",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
