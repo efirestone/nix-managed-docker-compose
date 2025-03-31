@@ -19,18 +19,18 @@ let
 
   composeFiles = lib.mapAttrsToList (name: appCfg:
     if lib.isAttrs appCfg.substitutions && appCfg.substitutions == {} then
-      appCfg.compose_file
-    else if builtins.isString appCfg.compose_file then
+      appCfg.composeFile
+    else if builtins.isString appCfg.composeFile then
       throw ''
         Error in application "${name}": 
-        Substitutions are not supported if `compose_file` is a path already on the remote
+        Substitutions are not supported if `composeFile` is a path already on the remote
         system, as indicated by using a quoted string and not a path.
-        You provided: ${toString appCfg.compose_file}
+        You provided: ${toString appCfg.composeFile}
         Hint: use a Nix path like ./path/to/file instead of a string like "/etc/compose.yml"
       ''
     else
       pkgs.substituteAll ({
-        src = appCfg.compose_file;
+        src = appCfg.composeFile;
       } // appCfg.substitutions)
 ) cfg.applications;
 
@@ -58,7 +58,7 @@ in {
       applications = mkOption {
         type = types.attrsOf (types.submodule ({
           options = {
-            compose_file = mkOption {
+            composeFile = mkOption {
               type = types.path;
               description = "Path to the Docker Compose file.";
             };

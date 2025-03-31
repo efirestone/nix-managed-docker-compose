@@ -15,7 +15,7 @@ in {
       services.managed-docker-compose.enable = true;
 
       services.managed-docker-compose.applications.test_app = {
-        compose_file = "/etc/docker-compose/test/compose.yaml";
+        composeFile = "/etc/docker-compose/test/compose.yaml";
       };
 
       # Create a fake Docker image that we can "run"
@@ -60,7 +60,7 @@ in {
       services.managed-docker-compose.enable = true;
 
       services.managed-docker-compose.applications.test_app = {
-        compose_file = "/etc/docker-compose/test/compose.yaml";
+        composeFile = "/etc/docker-compose/test/compose.yaml";
       };
 
       # Create a fake Docker image that we can "run"
@@ -111,7 +111,7 @@ in {
       ];
 
       services.managed-docker-compose.applications.test_app = {
-        compose_file = "/etc/docker-compose/current_app/compose.yaml";
+        composeFile = "/etc/docker-compose/current_app/compose.yaml";
       };
 
       # Create a fake Docker image that we can "run"
@@ -206,7 +206,7 @@ in {
                   - /run/current-system/sw/bin:/bin
             '';
         in {
-          compose_file = composeFile;
+          inherit composeFile;
           substitutions = {
             image_name = "testimg";
           };
