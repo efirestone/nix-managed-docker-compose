@@ -97,9 +97,12 @@ in {
       description = "Update Docker Compose files as part of nix config";
       wantedBy = [ "multi-user.target" ];
       path = envSysPackages;
-      serviceConfig = {
+      serviceConfig = let
+        composeFileArgs = (map (file: "-f \"${lib.escapeShellArg file}\"") composeFiles);
+        combinedArgs = concatStringsSep " " composeFileArgs;
+      in {
         Type = "simple";
-        ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh -b ${backendStr} ${concatStringsSep " " (map (file: "-f \"${file}\"") composeFiles)}";
+        ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh -b ${backendStr} ${combinedArgs}";
         TimeoutSec = 90;
       };
     };
