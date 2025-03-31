@@ -3,6 +3,12 @@
 let 
   pkgs = nixpkgs.legacyPackages.${system};
   runTest = pkgs.testers.runNixOSTest;
+
+  # Read the test fixtures into memory within this "host", where the paths
+  # are valid, then write the in-memory string back within the context of each VM.
+  currentAppComposeFile = builtins.readFile ./current_app_compose.yml;
+  dockerComposeFile = builtins.readFile ./docker_compose.yml;
+  substituteComposeFile = builtins.readFile ./substitute_compose.yml;
 in {
   # To run the tests: nix flake check --all-systems
   # You may also want the -L and --verbose flags for additional debugging.
@@ -15,7 +21,7 @@ in {
       services.managed-docker-compose.enable = true;
 
       services.managed-docker-compose.applications.test_app = {
-        composeFile = "/etc/docker-compose/test/compose.yaml";
+        composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
       # Create a fake Docker image that we can "run"
@@ -31,20 +37,6 @@ in {
       };
 
       virtualisation.oci-containers.backend = "docker";
-
-      # Run a very lightweight image, but also one that doesn't immediately exit.
-      environment.etc."docker-compose/test/compose.yaml".text =
-        ''
-        services:
-          myservice:
-            image: testimg
-            command: /bin/tail -f /dev/null
-            network_mode: none
-            volumes:
-              # Map the bin from the current system in so that we can execute `tail`
-              - /nix/store:/nix/store
-              - /run/current-system/sw/bin:/bin
-        '';
     };
     testScript = ''
       machine.wait_until_succeeds("docker ps --format='{{ .Image }}' | grep 'testimg'")
@@ -60,7 +52,7 @@ in {
       services.managed-docker-compose.enable = true;
 
       services.managed-docker-compose.applications.test_app = {
-        composeFile = "/etc/docker-compose/test/compose.yaml";
+        composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
       # Create a fake Docker image that we can "run"
@@ -74,20 +66,6 @@ in {
           TimeoutSec = 90;
         };
       };
-
-      # Run a very lightweight image, but also one that doesn't immediately exit.
-      environment.etc."docker-compose/test/compose.yaml".text =
-        ''
-        services:
-          myservice:
-            image: testimg
-            command: /bin/tail -f /dev/null
-            network_mode: none
-            volumes:
-              # Map the bin from the current system in so that we can execute `tail`
-              - /nix/store:/nix/store
-              - /run/current-system/sw/bin:/bin
-        '';
     };
     testScript = ''
       machine.wait_until_succeeds("podman ps --format='{{ .Image }}' | grep 'testimg'")
@@ -111,7 +89,7 @@ in {
       ];
 
       services.managed-docker-compose.applications.test_app = {
-        composeFile = "/etc/docker-compose/current_app/compose.yaml";
+        composeFile = pkgs.writeText "compose.yml" currentAppComposeFile;
       };
 
       # Create a fake Docker image that we can "run"
@@ -139,20 +117,6 @@ in {
           TimeoutSec = 90;
         };
       };
-
-      # Run a very lightweight image, but also one that doesn't immediately exit.
-      environment.etc."docker-compose/current_app/compose.yaml".text =
-        ''
-        services:
-          current_app:
-            image: testimg
-            command: /bin/tail -f /dev/null
-            network_mode: none
-            volumes:
-              # Map the bin from the current system in so that we can execute `tail`
-              - /nix/store:/nix/store
-              - /run/current-system/sw/bin:/bin
-        '';
 
       # This compose file isn't in the list of current files passed to the systemd service,
       # so it should be spun down.
@@ -192,21 +156,8 @@ in {
 
         virtualisation.oci-containers.backend = "docker";
 
-        services.managed-docker-compose.applications.test_app = let
-          composeFile = pkgs.writeText "compose.yml"
-            ''
-            services:
-              myservice:
-                image: @image_name@
-                command: /bin/tail -f /dev/null
-                network_mode: none
-                volumes:
-                  # Map the bin from the current system in so that we can execute `tail`
-                  - /nix/store:/nix/store
-                  - /run/current-system/sw/bin:/bin
-            '';
-        in {
-          inherit composeFile;
+        services.managed-docker-compose.applications.test_app = {
+          composeFile = pkgs.writeText "compose.yml" substituteComposeFile;
           substitutions = {
             image_name = "testimg";
           };

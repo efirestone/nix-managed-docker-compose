@@ -25,7 +25,7 @@
     checks = forEachSystem (system:
     let
       module = self.outputs.nixosModules.managed-docker-compose;
-      tests = import ./tests.nix {
+      tests = import ./tests/tests.nix {
         inherit module nixpkgs system;
       };
     in

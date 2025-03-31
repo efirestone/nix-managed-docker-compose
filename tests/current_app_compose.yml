@@ -1,0 +1,9 @@
+services:
+  current_app:
+    image: testimg
+    command: /bin/tail -f /dev/null
+    network_mode: none
+    volumes:
+      # Map the bin from the current system in so that we can execute `tail`
+      - /nix/store:/nix/store
+      - /run/current-system/sw/bin:/bin
