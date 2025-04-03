@@ -5,7 +5,7 @@
     nixpkgs.url = "nixpkgs/nixos-24.11-small";
 
     substitute-vars = {
-      url = "github:efirestone/nix-substitute-vars/0.1.0";
+      url = "github:efirestone/nix-substitute-vars/d426080";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
