@@ -20,7 +20,7 @@ in {
       # enable our custom module
       services.managed-docker-compose.enable = true;
 
-      services.managed-docker-compose.applications.test_app = {
+      services.managed-docker-compose.applications.testApp = {
         composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
@@ -51,7 +51,7 @@ in {
       # enable our custom module
       services.managed-docker-compose.enable = true;
 
-      services.managed-docker-compose.applications.test_app = {
+      services.managed-docker-compose.applications.testApp = {
         composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
@@ -88,7 +88,7 @@ in {
         gnutar
       ];
 
-      services.managed-docker-compose.applications.test_app = {
+      services.managed-docker-compose.applications.testApp = {
         composeFile = pkgs.writeText "compose.yml" currentAppComposeFile;
       };
 
@@ -156,10 +156,10 @@ in {
 
         virtualisation.oci-containers.backend = "docker";
 
-        services.managed-docker-compose.applications.test_app = {
+        services.managed-docker-compose.applications.testApp = {
           composeFile = pkgs.writeText "compose.yml" substituteComposeFile;
           substitutions = {
-            image_name = "testimg";
+            imageName = "testimg";
           };
         };
 

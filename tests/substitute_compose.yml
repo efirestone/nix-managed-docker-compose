@@ -1,6 +1,6 @@
 services:
   myservice:
-    image: @image_name@
+    image: ${imageName}
     command: /bin/tail -f /dev/null
     network_mode: none
     volumes:

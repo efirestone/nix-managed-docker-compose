@@ -1,4 +1,4 @@
-{ overlays }:
+{ overlays, ... }:
 
 {
   managed-docker-compose = import ./service.nix;
