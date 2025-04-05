@@ -32,6 +32,7 @@
         };
       in {
         nixosModules.default = module;
+        nixosModules.managedDockerCompose = module;
 
         lib = lib;
 
