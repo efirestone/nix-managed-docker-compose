@@ -1,17 +1,11 @@
-{
-  config,
-  pkgs,
-  lib ? pkgs.lib,
-  substituteVars,
-  ...
-}:
+{ config, lib, pkgs, managedDockerCompose, ... }:
 
 with lib;
 
 let
-  cfg = config.services.managed-docker-compose;
+  cfg = config.services.managedDockerCompose;
 
-  managed-docker-compose = pkgs.callPackage ../package.nix {};
+  managedDockerCompose = pkgs.callPackage ../package.nix {};
 
   backendStr = if cfg.backend == "podman" then "podman"
     else if cfg.backend == "docker" then "docker"
@@ -48,48 +42,45 @@ let
     pkgs.docker-compose
   ];
 in {
-  options = {
-    services.managed-docker-compose = rec {
-      enable = mkEnableOption "Enable automatic docker compose file management.";
-      backend = lib.mkOption {
-        type = types.str;
-        default = config.virtualisation.oci-containers.backend;
-        description = ''
-          The virtualisation backend to use (either \"docker\" or \"podman\"). Defaults to virtualisation.oci-containers.backend.
-        '';
-      };
+  options.services.managedDockerCompose = rec {
+    enable = mkEnableOption "Enable automatic docker compose file management.";
+    backend = lib.mkOption {
+      type = types.str;
+      default = config.virtualisation.oci-containers.backend;
+      description = ''
+        The virtualisation backend to use (either \"docker\" or \"podman\"). Defaults to virtualisation.oci-containers.backend.
+      '';
+    };
 
-      applications = mkOption {
-        type = types.attrsOf (types.submodule ({
-          options = {
-            composeFile = mkOption {
-              type = types.path;
-              description = "Path to the Docker Compose file.";
-            };
+    applications = mkOption {
+      type = types.attrsOf (types.submodule ({
+        options = {
+          composeFile = mkOption {
+            type = types.path;
+            description = "Path to the Docker Compose file.";
+          };
 
-            substitutions = mkOption {
-              type = types.attrsOf types.str;
-              default = {};
-              description = "Attribute set of variable substitutions to apply to Docker Compose files. For example, @projectName@ in compose.yaml will be replaced by substitutions.projectName.";
-              example = {
-                projectName = "my-app";
-                imageName = "my-image";
-                dbUser = "admin";
-                dbPassword = "secret";
-              };
+          substitutions = mkOption {
+            type = types.attrsOf types.str;
+            default = {};
+            description = "Attribute set of variable substitutions to apply to Docker Compose files. For example, @projectName@ in compose.yaml will be replaced by substitutions.projectName.";
+            example = {
+              projectName = "my-app";
+              imageName = "my-image";
+              dbUser = "admin";
+              dbPassword = "secret";
             };
           };
-        }));
-        default = {};
-        description = "Set of managed Docker Compose applications.";
-      };
+        };
+      }));
+      default = {};
+      description = "Set of managed Docker Compose applications.";
     };
   };
 
   config = mkIf cfg.enable {
-    
     # Give system the right packages, including our own
-    environment.systemPackages = [ managed-docker-compose ] ++ envSysPackages;
+    environment.systemPackages = [ managedDockerCompose ] ++ envSysPackages;
 
     # Setup the right virtualisation modules depending on backend.
     virtualisation.docker.enable = mkIf (backendStr == "docker") true;
@@ -97,7 +88,7 @@ in {
     virtualisation.podman.enable = mkIf (backendStr == "podman") true;
 
     # Run the docker-compose-update.py script each time we activate/deploy.
-    systemd.services.managed-docker-compose = {
+    systemd.services.managedDockerCompose = {
       description = "Update Docker Compose files as part of nix config";
       wantedBy = [ "multi-user.target" ];
       path = envSysPackages;
@@ -106,7 +97,7 @@ in {
         combinedArgs = concatStringsSep " " composeFileArgs;
       in {
         Type = "simple";
-        ExecStart = "${managed-docker-compose}/bin/docker-compose-update.sh -b ${backendStr} ${combinedArgs}";
+        ExecStart = "${managedDockerCompose}/bin/docker-compose-update.sh -b ${backendStr} ${combinedArgs}";
         TimeoutSec = 90;
       };
     };

@@ -1,8 +1,10 @@
 { module, nixpkgs, system }:
 
 let 
-  pkgs = nixpkgs.legacyPackages.${system};
-  runTest = pkgs.testers.runNixOSTest;
+  pkgs = nixpkgs;
+  # pkgs = nixpkgs.legacyPackages.${system};
+  runTest = nixpkgs.testers.runNixOSTest;
+  # runTest = nixpkgs.lib.nixosTest;
 
   # Read the test fixtures into memory within this "host", where the paths
   # are valid, then write the in-memory string back within the context of each VM.
