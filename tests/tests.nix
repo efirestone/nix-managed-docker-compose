@@ -1,8 +1,7 @@
-{ module, nixpkgs, system }:
+{ module, pkgs, system }:
 
 let 
-  pkgs = nixpkgs.legacyPackages.${system};
-  runTest = pkgs.testers.runNixOSTest;
+  runTest = pkgs.nixosTest;
 
   # Read the test fixtures into memory within this "host", where the paths
   # are valid, then write the in-memory string back within the context of each VM.
@@ -18,9 +17,9 @@ in {
       imports = [ module ];
 
       # enable our custom module
-      services.managed-docker-compose.enable = true;
+      services.managedDockerCompose.enable = true;
 
-      services.managed-docker-compose.applications.test_app = {
+      services.managedDockerCompose.applications.testApp = {
         composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
@@ -49,9 +48,9 @@ in {
       imports = [ module ];
 
       # enable our custom module
-      services.managed-docker-compose.enable = true;
+      services.managedDockerCompose.enable = true;
 
-      services.managed-docker-compose.applications.test_app = {
+      services.managedDockerCompose.applications.testApp = {
         composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
@@ -78,7 +77,7 @@ in {
       imports = [ module ];
 
       # enable our custom module
-      services.managed-docker-compose.enable = true;
+      services.managedDockerCompose.enable = true;
 
       # Use docker and not podman for this test
       virtualisation.oci-containers.backend = "docker";
@@ -88,7 +87,7 @@ in {
         gnutar
       ];
 
-      services.managed-docker-compose.applications.test_app = {
+      services.managedDockerCompose.applications.testApp = {
         composeFile = pkgs.writeText "compose.yml" currentAppComposeFile;
       };
 
@@ -152,14 +151,14 @@ in {
         imports = [ module ];
 
         # enable our custom module
-        services.managed-docker-compose.enable = true;
+        services.managedDockerCompose.enable = true;
 
         virtualisation.oci-containers.backend = "docker";
 
-        services.managed-docker-compose.applications.test_app = {
+        services.managedDockerCompose.applications.testApp = {
           composeFile = pkgs.writeText "compose.yml" substituteComposeFile;
           substitutions = {
-            image_name = "testimg";
+            imageName = "testimg";
           };
         };
 
