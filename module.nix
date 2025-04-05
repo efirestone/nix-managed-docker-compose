@@ -1,11 +1,11 @@
-{ config, lib, pkgs, managedDockerCompose, ... }:
+{ config, lib, pkgs, substituteVars, ... }:#, substitute-vars, ... }:
 
 with lib;
 
 let
   cfg = config.services.managedDockerCompose;
 
-  managedDockerCompose = pkgs.callPackage ../package.nix {};
+  managedDockerCompose = pkgs.callPackage ./package.nix {};
 
   backendStr = if cfg.backend == "podman" then "podman"
     else if cfg.backend == "docker" then "docker"

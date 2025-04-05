@@ -66,16 +66,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1743712129,
-        "narHash": "sha256-AnXdCG8T2B8ccTaj7vOZ9Q59ebd0iO3VPrkZ6bapyWw=",
+        "lastModified": 1743887090,
+        "narHash": "sha256-mHbLU/X6jcrfykicAinuI0WEFQbuMrMsRKcfRDpqVQw=",
         "owner": "efirestone",
         "repo": "nix-substitute-vars",
-        "rev": "d426080baa397fc690b3d432994878d6ccd51cfb",
+        "rev": "5a5437d8ef9010f1a0e79a1ef3e7aa4f834ba915",
         "type": "github"
       },
       "original": {
         "owner": "efirestone",
-        "ref": "d426080",
+        "ref": "0.2.0",
         "repo": "nix-substitute-vars",
         "type": "github"
       }
