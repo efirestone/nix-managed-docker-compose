@@ -12,30 +12,23 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, substitute-vars, ... }@args:
-  let
-    lib = {
-      makePackage = { pkgs, config }: import ./lib.nix { inherit pkgs config; };
-    };
-  in
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        substituteVars = substitute-vars.lib.${system}.substituteVars;
+  flake-utils.lib.eachDefaultSystem (system:
+    let
+      pkgs = import nixpkgs { inherit system; };
+      substituteVars = substitute-vars.lib.${system}.substituteVars;
 
-        module = { pkgs, ... }@args:
-          import ./module.nix ({
-            inherit pkgs substituteVars;
-          } // args);
+      module = { pkgs, ... }@args:
+        import ./module.nix ({
+          inherit pkgs substituteVars;
+        } // args);
 
-        tests = import ./tests/tests.nix {
-          inherit module pkgs system;
-        };
-      in {
-        nixosModules.default = module;
-        nixosModules.managedDockerCompose = module;
+      tests = import ./tests/tests.nix {
+        inherit module pkgs system;
+      };
+    in {
+      nixosModules.default = module;
+      nixosModules.managedDockerCompose = module;
 
-        lib = lib;
-
-        checks = builtins.mapAttrs (_: v: v) tests;
-      });
+      checks = builtins.mapAttrs (_: v: v) tests;
+    });
 }
