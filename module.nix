@@ -1,4 +1,4 @@
-{ config, lib, pkgs, substituteVars, ... }:#, substitute-vars, ... }:
+{ config, lib, pkgs, substituteVars, ... }:
 
 with lib;
 
