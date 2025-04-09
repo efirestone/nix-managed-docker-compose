@@ -10,6 +10,16 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Run Python Tests",
+            "type": "shell",
+            "command": "PYTHONPATH=script/src python3 -m unittest discover -s script/tests",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

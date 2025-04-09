@@ -1,28 +1,12 @@
 import unittest
-from dockercomposeupdate import Application, CommandRunner
+from command_runner import CommandRunner
+from docker_utils import DockerUtils
+from fake_command_runner import FakeCommandRunner
+from fake_file_system import FakeFileSystem
 from pathlib import Path
 
-class FakeCommandRunner:
-    def __init__(self, responses: list[CommandRunner.RunResult]):
-        self.responses = responses
-        self.index = 0
-        self.commands = []
-
-    def run(self, *args) -> str:
-        self.commands.append(args)
-        self.index += 1
-        return self.responses[self.index - 1]
-
-class FakeFileSystem:
-    def __init__(self, existing_paths):
-        self.existing_paths = existing_paths
-
-    def exists(self, path) -> bool:
-        return path in self.existing_paths
-
-# To run this, `cd` into `./script` and run `python -m unittest`
+# To run this, run "PYTHONPATH=script/src python3 -m unittest discover -s script/tests"
 class TestDockerComposeUpdate(unittest.TestCase):
-
     # Test fetching the compose yaml path for a running docker service.
     # This variant tests when docker returns a relative path for the
     # com.docker.compose.project.config_files attribute.
@@ -39,8 +23,8 @@ class TestDockerComposeUpdate(unittest.TestCase):
             existing_paths=[Path("/the/containing/dir/compose.yaml")]
         )
 
-        app = Application()
-        info = app.info_for_container("container_id", "docker", command_runner, file_system)
+        docker_utils = DockerUtils(docker_backend="docker", command_runner=command_runner, file_system=file_system)
+        info = docker_utils.info_for_container("container_id")
 
         self.assertEqual(
             command_runner.commands,
@@ -70,8 +54,8 @@ class TestDockerComposeUpdate(unittest.TestCase):
             existing_paths=[Path("/the/containing/dir/compose.yaml")]
         )
 
-        app = Application()
-        info = app.info_for_container("container_id", "docker", command_runner, file_system)
+        docker_utils = DockerUtils(docker_backend="docker", command_runner=command_runner, file_system=file_system)
+        info = docker_utils.info_for_container("container_id")
 
         self.assertEqual(
             command_runner.commands,
