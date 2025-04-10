@@ -19,7 +19,7 @@ in {
       # enable our custom module
       services.managedDockerCompose.enable = true;
 
-      services.managedDockerCompose.applications.testApp = {
+      services.managedDockerCompose.projects.testApp = {
         composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
@@ -50,7 +50,7 @@ in {
       # enable our custom module
       services.managedDockerCompose.enable = true;
 
-      services.managedDockerCompose.applications.testApp = {
+      services.managedDockerCompose.projects.testApp = {
         composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
       };
 
@@ -87,7 +87,7 @@ in {
         gnutar
       ];
 
-      services.managedDockerCompose.applications.testApp = {
+      services.managedDockerCompose.projects.testApp = {
         composeFile = pkgs.writeText "compose.yml" currentAppComposeFile;
       };
 
@@ -120,7 +120,7 @@ in {
       # This compose file isn't in the list of current files passed to the systemd service,
       # so it should be spun down.
       #
-      # In the future we should only spin do applications that have a specific label (which we add)
+      # In the future we should only spin down projects that have a specific label (which we add)
       # so that it's still possible for other services to use Docker Compose, but for now we'll
       # assume that only managed-docker-compose is running Docker Compose.
       environment.etc."docker-compose/old_app/compose.yaml".text =
@@ -137,10 +137,10 @@ in {
         '';
     };
     testScript = ''
-      # Make sure the new application spins up
+      # Make sure the new project spins up
       machine.wait_until_succeeds("docker ps --format='{{ .Names }}' | grep 'current_app'")
 
-      # Make sure the old application spins down
+      # Make sure the old project spins down
       machine.wait_until_fails("docker ps --format='{{ .Names }}' | grep 'old_app'")
     '';
   };
@@ -155,10 +155,15 @@ in {
 
         virtualisation.oci-containers.backend = "docker";
 
-        services.managedDockerCompose.applications.testApp = {
+        environment.etc.secretpassword.text = "image";
+
+        services.managedDockerCompose.projects.testApp = {
           composeFile = pkgs.writeText "compose.yml" substituteComposeFile;
           substitutions = {
-            imageName = "testimg";
+            subbed = "test";
+          };
+          secrets = {
+            secret = "/etc/secretpassword";
           };
         };
 
@@ -169,13 +174,24 @@ in {
           requiredBy = [ "managed-docker-compose.service" ];
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = "/bin/sh -c '${pkgs.gnutar}/bin/tar cv --files-from /dev/null | ${pkgs.docker}/bin/docker import - testimg'";
+            ExecStart = "/bin/sh -c '${pkgs.gnutar}/bin/tar cv --files-from /dev/null | ${pkgs.docker}/bin/docker import - test-image'";
             TimeoutSec = 90;
           };
         };
       };
       testScript = ''
-        machine.wait_until_succeeds("docker ps --format='{{ .Image }}' | grep 'testimg'")
+        # The name of the image we loaded was defined using a substitution and a secret (combined),
+        # so if it loaded, then both were subbed in correctly.
+        machine.wait_until_succeeds("docker ps --format='{{ .Image }}' | grep 'test-image'")
+
+        mode = machine.succeed("stat -c \"%a\" /run/nix-docker-compose").strip()
+        assert mode == "751", "Expected compose files directory to have non-world-readable permissions."
+
+        mode = machine.succeed("stat -c \"%a\" /run/nix-docker-compose/testApp").strip()
+        assert mode == "551", "Expected project directory to have non-world-readable permissions."
+
+        mode = machine.succeed("stat -c \"%a\" /run/nix-docker-compose/testApp/compose.yml").strip()
+        assert mode == "440", "Expected compose file with secrets to have non-world-readable permissions."
       '';
   };
 }

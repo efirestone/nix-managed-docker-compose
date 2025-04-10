@@ -1,6 +1,6 @@
 services:
   myservice:
-    image: ${imageName}
+    image: ${subbed}-${secret}
     command: /bin/tail -f /dev/null
     network_mode: none
     volumes:

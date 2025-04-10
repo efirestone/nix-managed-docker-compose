@@ -25,4 +25,4 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13' 
-      - run: cd script && python3 -m unittest
+      - run: PYTHONPATH=script/src python3 -m unittest discover -s script/tests
