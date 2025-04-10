@@ -2,12 +2,6 @@
 
 let 
   runTest = pkgs.nixosTest;
-
-  # Read the test fixtures into memory within this "host", where the paths
-  # are valid, then write the in-memory string back within the context of each VM.
-  currentAppComposeFile = builtins.readFile ./current_app_compose.yml;
-  dockerComposeFile = builtins.readFile ./docker_compose.yml;
-  substituteComposeFile = builtins.readFile ./substitute_compose.yml;
 in {
   # To run the tests: nix flake check --all-systems
   # You may also want the -L and --verbose flags for additional debugging.
@@ -20,7 +14,7 @@ in {
       services.managedDockerCompose.enable = true;
 
       services.managedDockerCompose.projects.testApp = {
-        composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
+        composeFile = "/tmp/compose.yml";
       };
 
       # Create a fake Docker image that we can "run"
@@ -38,6 +32,7 @@ in {
       virtualisation.oci-containers.backend = "docker";
     };
     testScript = ''
+      machine.copy_from_host("${./docker_compose.yml}", "/tmp/compose.yml")
       machine.wait_until_succeeds("docker ps --format='{{ .Image }}' | grep 'testimg'")
     '';
   };
@@ -51,7 +46,7 @@ in {
       services.managedDockerCompose.enable = true;
 
       services.managedDockerCompose.projects.testApp = {
-        composeFile = pkgs.writeText "compose.yml" dockerComposeFile;
+        composeFile = "/tmp/compose.yml";
       };
 
       # Create a fake Docker image that we can "run"
@@ -67,6 +62,7 @@ in {
       };
     };
     testScript = ''
+      machine.copy_from_host("${./docker_compose.yml}", "/tmp/compose.yml")
       machine.wait_until_succeeds("podman ps --format='{{ .Image }}' | grep 'testimg'")
     '';
   };
@@ -88,7 +84,7 @@ in {
       ];
 
       services.managedDockerCompose.projects.testApp = {
-        composeFile = pkgs.writeText "compose.yml" currentAppComposeFile;
+        composeFile = "/tmp/compose.yml";
       };
 
       # Create a fake Docker image that we can "run"
@@ -137,6 +133,8 @@ in {
         '';
     };
     testScript = ''
+      machine.copy_from_host("${./current_app_compose.yml}", "/tmp/compose.yml")
+
       # Make sure the new project spins up
       machine.wait_until_succeeds("docker ps --format='{{ .Names }}' | grep 'current_app'")
 
@@ -158,7 +156,7 @@ in {
         environment.etc.secretpassword.text = "image";
 
         services.managedDockerCompose.projects.testApp = {
-          composeFile = pkgs.writeText "compose.yml" substituteComposeFile;
+          composeFile = "/tmp/compose.yml";
           substitutions = {
             subbed = "test";
           };
@@ -180,6 +178,8 @@ in {
         };
       };
       testScript = ''
+        machine.copy_from_host("${./substitute_compose.yml}", "/tmp/compose.yml")
+
         # The name of the image we loaded was defined using a substitution and a secret (combined),
         # so if it loaded, then both were subbed in correctly.
         machine.wait_until_succeeds("docker ps --format='{{ .Image }}' | grep 'test-image'")
