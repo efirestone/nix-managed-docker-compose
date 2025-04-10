@@ -78,10 +78,8 @@ in {
     # Give system the right packages, including our own
     environment.systemPackages = [ managedDockerCompose ] ++ envSysPackages;
 
-    # Setup the right virtualisation modules depending on backend.
-    virtualisation.docker.enable = mkIf (backendStr == "docker") true;
+    # Enable the container service if we're running Docker. Podman doesn't need it.
     virtualisation.containers.enable = mkIf (backendStr == "docker") true;
-    virtualisation.podman.enable = mkIf (backendStr == "podman") true;
 
     # Do some file system setup. This must be done in an activation script when we have
     # root access and can still modify certain things.
