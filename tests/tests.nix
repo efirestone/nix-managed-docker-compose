@@ -67,8 +67,8 @@ in {
     '';
   };
 
-  deactivateTest = runTest {
-    name = "deactivateOldComposeFilesTest";
+  deactivateWithoutSubstitutionsTest = runTest {
+    name = "deactivateOldComposeFilesWithoutSubstitutionsTest";
     nodes.machine = {
       imports = [ module ];
 
@@ -140,6 +140,86 @@ in {
 
       # Make sure the old project spins down
       machine.wait_until_fails("docker ps --format='{{ .Names }}' | grep 'old_app'")
+    '';
+  };
+
+  deactivateWithSubstitutionsTest = let
+    old_compose_file = pkgs.writeTextFile {
+      name = "old_compose.yml";
+      text = ''
+        services:
+          old_app:
+            image: testimg
+            command: /bin/tail -f /dev/null
+            network_mode: none
+            volumes:
+              # Map the bin from the current system in so that we can execute `tail`
+              - /nix/store:/nix/store
+              - /run/current-system/sw/bin:/bin
+      '';
+    };
+    old_compose_file_path = "/run/nix-docker-compose/old_app/compose.yml";
+  in runTest {
+    name = "deactivateOldComposeFilesWithSubstitutionsTest";
+    nodes.machine = {
+      imports = [ module ];
+
+      # enable our custom module
+      services.managedDockerCompose.enable = true;
+
+      # Use docker and not podman for this test
+      virtualisation.oci-containers.backend = "docker";
+
+      environment.systemPackages = with pkgs; [
+        docker
+        gnutar
+      ];
+
+      services.managedDockerCompose.projects.testApp = {
+        composeFile = "/tmp/compose.yml";
+      };
+
+      # Create a fake Docker image that we can "run"
+      systemd.services.create-fake-docker-image = {
+        description = "Create fake Docker image";
+        before = [ "managed-docker-compose.service" ];
+        requiredBy = [ "managed-docker-compose.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "/bin/sh -c '${pkgs.gnutar}/bin/tar cv --files-from /dev/null | ${pkgs.docker}/bin/docker import - testimg'";
+          TimeoutSec = 90;
+        };
+      };
+
+      # Start an existing service. The managed-docker-compose service should spin this one down,
+      # and because the compose.yml is in the secrets directory, it should try to delete it.
+      systemd.services.start-existing-docker-container = {
+        description = "Start existing Docker container";
+        after = [ "create-fake-docker-image.service" ];
+        before = [ "managed-docker-compose.service" ];
+        requires = [ "create-fake-docker-image.service" ];
+        requiredBy = [ "managed-docker-compose.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.docker}/bin/docker compose --file ${old_compose_file_path} up --detach --wait";
+          TimeoutSec = 90;
+        };
+      };
+    };
+    testScript = ''
+      machine.copy_from_host("${./current_app_compose.yml}", "/tmp/compose.yml")
+
+      # Copy the file somewhere inside /run/nix-docker-compose so that we will attempt to delete it.
+      machine.copy_from_host("${old_compose_file}", "${old_compose_file_path}")
+
+      # Make sure the new project spins up
+      machine.wait_until_succeeds("docker ps --format='{{ .Names }}' | grep 'current_app'")
+
+      # Make sure the old project spins down
+      machine.wait_until_fails("docker ps --format='{{ .Names }}' | grep 'old_app'")
+
+      # Make sure the old secrets-containing compose file is deleted.
+      machine.succeed("[ ! -e \"${old_compose_file_path}\" ]")
     '';
   };
 
