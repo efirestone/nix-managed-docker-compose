@@ -1,5 +1,6 @@
-import os
+import base64
 import hashlib
+import os
 from file_system import FileSystem
 from pathlib import Path
 from typing import Dict
@@ -34,7 +35,7 @@ class Substituter:
         # Write to output file
         # Include a hash of the contents so that if we change a compose file, the old one is still
         # there to spin down even after the new one has been spun up.
-        sha256 = hashlib.sha256(template.encode('utf-8')).digest()
+        sha256 = Substituter._nix_sha256_base32(template)
 
         project_dir = self.output_dir / f"{sha256}-{project_name}"
         project_dir.mkdir()
@@ -46,3 +47,18 @@ class Substituter:
         os.chmod(output_path, 0o440)
 
         return output_path
+
+    @staticmethod
+    def _nix_base32_encode(data: bytes) -> str:
+        # Nix uses its own base32 alphabet:
+        nix_alphabet = '0123456789abcdfghijklmnpqrsvwxyz'
+        std_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+        b32 = base64.b32encode(data).decode('utf-8').lower().strip('=')
+
+        trans = str.maketrans(std_alphabet.lower(), nix_alphabet)
+        return b32.translate(trans)
+
+    @staticmethod
+    def _nix_sha256_base32(s: str) -> str:
+        sha256 = hashlib.sha256(s.encode('utf-8')).digest()
+        return Substituter._nix_base32_encode(sha256)
