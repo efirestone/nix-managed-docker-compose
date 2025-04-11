@@ -1,4 +1,5 @@
 import os
+import hashlib
 from file_system import FileSystem
 from pathlib import Path
 from typing import Dict
@@ -31,7 +32,11 @@ class Substituter:
             template = template.replace(f"${{{key}}}", secret_content)
 
         # Write to output file
-        project_dir = self.output_dir / project_name
+        # Include a hash of the contents so that if we change a compose file, the old one is still
+        # there to spin down even after the new one has been spun up.
+        sha256 = hashlib.sha256(template.encode('utf-8')).digest()
+
+        project_dir = self.output_dir / f"{sha256}-{project_name}"
         project_dir.mkdir()
         output_path = project_dir / "compose.yml"
         output_path.write_text(template)
