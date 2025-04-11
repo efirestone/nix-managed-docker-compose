@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import shutil
 import sys
 from command_runner import RealCommandRunner
 from docker_utils import DockerUtils
@@ -26,7 +27,8 @@ def main():
     backend = data.get("backend")
     projects = dict(data.get("projects"))
 
-    substituter = Substituter(file_system=file_system, output_dir=Path(args.output_dir))
+    output_dir = Path(args.output_dir)
+    substituter = Substituter(file_system=file_system, output_dir=output_dir)
     current_compose_files = set()
     for name, app_config in projects.items():
         resolved_path = substituter.substitute(
@@ -54,10 +56,27 @@ def main():
     for container_info in stale_containers:
         print(f"Unloading: {container_info.compose_file_path}")
         docker_utils.compose_down(info=container_info)
+        
+        # Delete the old compose file as it contained secrets and we don't want to leave it around.
+        clean_up_compose_file(container_info.compose_file_path, output_dir)
 
     for compose_file in current_compose_files:
         print(f"Loading: {compose_file}")
         docker_utils.compose_up(path=compose_file)
+
+def clean_up_compose_file(compose_file_path: Path, output_dir: Path):
+    try:
+        compose_file_path.resolve().relative_to(output_dir.resolve())
+    except ValueError:
+        # The compose file is not within the secrets directory, so don't try to delete it.
+        # Compose files that didn't include substitutions are kept in the Nix store, which we can't
+        # (and shouldn't) modify.
+        return
+
+    try:
+        shutil.rmtree(compose_file_path)
+    except Exception as e:
+        print(f"❌ Failed to delete {compose_file_path}: {e}")
 
 if __name__ == "__main__":
     main()

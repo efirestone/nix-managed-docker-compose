@@ -21,14 +21,6 @@ let
     pkgs.docker
     pkgs.docker-compose
   ];
-
-  resolvedComposeFilesDirectory = "/run/nix-docker-compose";
-
-  # Write the config options out to a JSON file, which will then be read by the Python script.
-  configFile = pkgs.writeTextFile {
-    name = "managed-docker-compose-config.json";
-    text = (builtins.toJSON cfg);
-  };
 in {
   options.services.managedDockerCompose = rec {
     enable = mkEnableOption "Enable automatic docker compose file management.";
@@ -83,36 +75,29 @@ in {
     virtualisation.containers.enable = mkIf (backendStr == "docker") true;
     virtualisation.podman.enable = mkIf (backendStr == "podman") true;
 
-    # Do some file system setup. This must be done in an activation script when we have
-    # root access and can still modify certain things.
-    system.activationScripts."managed-docker-compose" = {
-      text = ''
-        # Delete the old compose files, which may contain secrets.
-        # We'll recreate them if they're still valid.
-        rm -rf "${resolvedComposeFilesDirectory}/*"
-
-        mkdir -p "${resolvedComposeFilesDirectory}"
-        chmod 0751 "${resolvedComposeFilesDirectory}"
-
-        # Create a RAM disk to ensure the secrets don't survive a reboot and aren't
-        # available to someone sniffing the hard drive.
-        # If this package is still included then we'll recreate them.
-        grep -q "${resolvedComposeFilesDirectory} ramfs" /proc/mounts ||
-          mount -t ramfs none "${resolvedComposeFilesDirectory}" -o nodev,nosuid,mode=0751
-      '';
-    };
-
     # Run the docker-compose-update.py script each time we activate/deploy.
     systemd.services.managed-docker-compose = {
       description = "Update Docker Compose files as part of nix config";
       wantedBy = [ "multi-user.target" ];
-      path = envSysPackages;
+      # path = envSysPackages;
       serviceConfig = let
-        composeFileArgs = (map (file: "-f \"${lib.escapeShellArg file}\"") composeFiles);
-        combinedArgs = concatStringsSep " " composeFileArgs;
+        # Write the config options out to a JSON file, which will then be read by the Python script.
+        configFile = pkgs.writeTextFile {
+          name = "managed-docker-compose-config.json";
+          text = (builtins.toJSON cfg);
+        };
+
+        resolvedFilesDirectoryName = "nix-docker-compose";
       in {
+        # systemd will auto-create /run/${resolvedFilesDirectoryName}
+        RuntimeDirectory = resolvedFilesDirectoryName;
+        RuntimeDirectoryMode = 751;
+        RuntimeDirectoryPreserve = "yes";
         Type = "simple";
-        ExecStart = "${managedDockerCompose}/bin/managed-docker-compose -c ${configFile} -o ${resolvedComposeFilesDirectory}";
+        # Resolve substitutions and secrets, and start/stop Docker Compose projects
+        ExecStart = ''
+          ${managedDockerCompose}/bin/managed-docker-compose -c ${configFile} -o "/run/${resolvedFilesDirectoryName}
+        '';
         TimeoutSec = 90;
       };
     };
