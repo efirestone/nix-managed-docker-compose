@@ -35,7 +35,7 @@ class TestDockerComposeUpdate(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(info.compose_file_path, "/the/containing/dir/compose.yaml")
+        self.assertEqual(info.compose_file_path, Path("/the/containing/dir/compose.yaml"))
         self.assertEqual(info.project_name, "the_project")
 
     # Test fetching the compose yaml path for a running docker service.
@@ -66,7 +66,7 @@ class TestDockerComposeUpdate(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(info.compose_file_path, "/the/containing/dir/compose.yaml")
+        self.assertEqual(info.compose_file_path, Path("/the/containing/dir/compose.yaml"))
         self.assertEqual(info.project_name, "the_project")
 
 if __name__ == '__main__':

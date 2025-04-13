@@ -4,7 +4,7 @@ from file_system import FileSystem
 from pathlib import Path
 
 class RunningContainerInfo:
-    def __init__(self, compose_file_path, project_name):
+    def __init__(self, compose_file_path: Path, project_name: str):
         self.compose_file_path = compose_file_path
         self.project_name = project_name
 
@@ -41,7 +41,7 @@ class DockerUtils:
         if not compose_file.startswith(compose_dir):
             compose_file = os.path.join(compose_dir, compose_file)
 
-        compose_file_path = str(Path(compose_file).resolve()) if self.file_system.exists(Path(compose_file)) else None
+        compose_file_path = Path(compose_file).resolve() if self.file_system.exists(Path(compose_file)) else None
         if compose_file_path == None:
             return None
 
@@ -62,7 +62,7 @@ class DockerUtils:
                 container_infos.add(info)
 
         return container_infos
-    
+
     def compose_down(self, info: RunningContainerInfo):
         self.command_runner.run(self.docker_backend, "compose", "-p", info.project_name, "--file", info.compose_file_path, "down")
 
