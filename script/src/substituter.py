@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import os
 from file_system import FileSystem
 from pathlib import Path
 from typing import Dict
@@ -11,14 +10,14 @@ class Substituter:
         self.output_dir = output_dir
 
     def substitute(self, path: Path, project_name: str, substitutions: Dict[str, str], secrets: Dict[str, str]) -> Path:
-        if not path.exists():
+        if not self.file_system.exists(path):
             raise Exception(f"Compose file not found: {path}")
 
         # If we're not doing any substitutions, then don't write out a new file.
         if not substitutions and not secrets:
             return path
 
-        template = path.read_text()
+        template = self.file_system.read_text(path)
 
         # Apply substitutions
         for key, value in substitutions.items():
@@ -27,9 +26,9 @@ class Substituter:
         # Apply secrets
         for key, secret_path in secrets.items():
             secret_file = Path(secret_path)
-            if not secret_file.exists():
+            if not self.file_system.exists(secret_file):
                 raise Exception(f"Secret file not found: {secret_path}")
-            secret_content = secret_file.read_text()
+            secret_content = self.file_system.read_text(secret_file)
             template = template.replace(f"${{{key}}}", secret_content)
 
         # Write to output file
@@ -38,13 +37,14 @@ class Substituter:
         sha256 = Substituter._nix_sha256_base32(template)
 
         project_dir = self.output_dir / f"{sha256}-{project_name}"
-        project_dir.mkdir(parents=False, exist_ok=True)
+        self.file_system.mkdir(project_dir, parents=False, exist_ok=True)
+        # project_dir.mkdir(parents=False, exist_ok=True)
         output_path = project_dir / "compose.yml"
-        output_path.write_text(template)
+        self.file_system.write_text(output_path, template)
 
         # Make the file not-world-readable since it may contain secrets
-        os.chmod(project_dir, 0o551)
-        os.chmod(output_path, 0o440)
+        self.file_system.chmod(project_dir, 0o551)
+        self.file_system.chmod(output_path, 0o440)
 
         return output_path
 
