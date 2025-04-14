@@ -38,7 +38,7 @@ class Substituter:
         sha256 = Substituter._nix_sha256_base32(template)
 
         project_dir = self.output_dir / f"{sha256}-{project_name}"
-        project_dir.mkdir()
+        project_dir.mkdir(parents=False, exist_ok=True)
         output_path = project_dir / "compose.yml"
         output_path.write_text(template)
 
