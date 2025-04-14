@@ -74,14 +74,67 @@ class TestDockerComposeUpdate(unittest.TestCase):
 class TestSubstituter(unittest.TestCase):
     def test_substitute(self):
         file_system = FakeFileSystem()
-        file_system.write_text(Path("/tmp/secret"), "secret_pass")
+        file_system.write_text(Path("/tmp/secret"), "N@^ahX@@M8Vwz1ER4sZ@3P@F")
 
         template_path = Path("/tmp/compose.yml")
         file_system.write_text(
             template_path,
             '''
-              DB_USER: ${user}
-              DB_PASSWD: "${secr}"
+services:
+  # https://forgejo.org/docs/next/admin/installation-docker/
+  forgejo:
+    # Use [digest pinning](https://docs.renovatebot.com/docker/#digest-pinning) and rely on renovatebot
+    image: codeberg.org/forgejo/forgejo:10-rootless@sha256:5658d26e908b9acb533f86616000dd3d9619085e6979aa394d89142ed69f19b2
+    restart: unless-stopped
+    container_name: forgejo
+    environment:
+      FORGEJO__database__DB_TYPE: mysql
+      FORGEJO__database__HOST: db:3306
+      FORGEJO__database__NAME: forgejo
+      FORGEJO__database__USER: forgejo
+      FORGEJO__database__PASSWD: "${mysqlPassword}"
+    networks:
+      forgejo:
+      macvlan:
+        ipv4_address: 10.1.10.120
+        # mac_address: 02:42:0a:01:0a:fc
+    user: ${uid}:${gid}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /services/forgejo/config:/etc/gitea
+      - /services/forgejo/data:/var/lib/gitea
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0.41@sha256:0c28992fc27c2f6e253e3e8900318cc26ebc59b724036d41b626134a29e80268
+    restart: unless-stopped
+    container_name: forgejo-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_USER: forgejo
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      MYSQL_DATABASE: forgejo
+    networks:
+      forgejo:
+    volumes:
+      - /services/forgejo/mysql:/var/lib/mysql
+    secrets:
+      - mysql_password
+      - mysql_root_password
+
+networks:
+  forgejo:
+    external: false
+  macvlan:
+    external: true
+
+secrets:
+   mysql_password:
+     file: ${mysqlPasswordFile}
+   mysql_root_password:
+     file: ${mysqlRootPasswordFile}
             '''
         )
 
@@ -90,11 +143,18 @@ class TestSubstituter(unittest.TestCase):
         new_path = substituter.substitute(
             path=template_path,
             project_name="proj",
-            substitutions={ "user": "dbuser" },
-            secrets={ "secr": "/tmp/secret" }
+            substitutions={
+                "uid": "777",
+                "gid": "743",
+                "mysqlPasswordFile": "/tmp/secret",
+                "mysqlRootPasswordFile": "/tmp/secret",
+            },
+            secrets={ "mysqlPassword": "/tmp/secret" }
         )
 
         resolved_content = file_system.read_text(new_path)
+
+        print(f"Resolved content:\n{resolved_content}")
 
         self.assertEqual(
             resolved_content,

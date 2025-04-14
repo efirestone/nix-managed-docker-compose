@@ -28,7 +28,10 @@ class Substituter:
             secret_file = Path(secret_path)
             if not self.file_system.exists(secret_file):
                 raise Exception(f"Secret file not found: {secret_path}")
-            secret_content = self.file_system.read_text(secret_file)
+            # self.file_system.write_text(Path("/tmp/some_secret"), "7dd02d9password")
+            # secret_content = self.file_system.read_text(Path("/tmp/some_secret")) #secret_file)
+            secret_content = self.file_system.read_text(secret_file).rstrip('\r')
+            print(f"secret content: {secret_content}!!")
             template = template.replace(f"${{{key}}}", secret_content)
 
         # Write to output file
