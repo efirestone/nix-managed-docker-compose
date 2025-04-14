@@ -96,6 +96,9 @@ in {
         ExecStart = ''
           ${managedDockerCompose}/bin/managed-docker-compose -c ${configFile} -o "/run/${resolvedFilesDirectoryName}"
         '';
+        # ''
+        #   /run/current-system/sw/bin/ls /run/${resolvedFilesDirectoryName} && ${managedDockerCompose}/bin/managed-docker-compose -c ${configFile} -o "/run/${resolvedFilesDirectoryName}"
+        # '';
         TimeoutSec = 90;
       };
     };
