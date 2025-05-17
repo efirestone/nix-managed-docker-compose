@@ -58,7 +58,7 @@ def main():
         docker_utils.compose_down(info=container_info)
 
         # Delete the old compose file as it contained secrets and we don't want to leave it around.
-        clean_up_compose_file(container_info.compose_file_path, output_dir)
+        #clean_up_compose_file(container_info.compose_file_path, output_dir)
 
     for compose_file in current_compose_files:
         print(f"Loading: {compose_file}")
