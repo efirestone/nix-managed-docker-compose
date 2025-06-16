@@ -66,5 +66,5 @@ class DockerUtils:
     def compose_down(self, info: RunningContainerInfo):
         self.command_runner.run(self.docker_backend, "compose", "-p", info.project_name, "--file", str(info.compose_file_path), "down", "--timeout", "120")
 
-    def compose_up(self, path: str):
-        self.command_runner.run(self.docker_backend, "compose", "--file", path, "up", "--detach")
+    def compose_up(self, path: Path):
+        self.command_runner.run(self.docker_backend, "compose", "--file", str(path), "up", "--detach")
