@@ -20,7 +20,7 @@ This package and service are designed to be used with flakes. To install, add th
       system = system;
       modules = [
         ./configuration.nix
-        managed-docker-compose.nixosModules.managed-docker-compose
+        managed-docker-compose.nixosModules.${system}.managedDockerCompose
       ];
     };
   };
@@ -32,14 +32,30 @@ This package and service are designed to be used with flakes. To install, add th
 In your configuration, enable the service:
 
 ```
-services.managed-docker-compose.enable = true;
+services.managedDockerCompose.enable = true;
 ```
 
 You can also manually configure the backend to be "docker" or "podman". By default the service will use the value from `virtualisation.oci-containers.backend`, so you should only need to manually specify this configuration option if you want to use two different backends for containers defined via `virtualisation.oci-containers` and containers managed via `managed-docker-compose`.
 
 ```
 # Not usually required
-services.managed-docker-compose.backend = "docker";
+services.managedDockerCompose.backend = "docker";
+```
+
+## Usage
+Below is a complete example usage:
+```
+  services.managedDockerCompose = {
+    enable = true;
+    # choose a name for your container
+    projects.<name of container> = { 
+      # make sure the docker compose file is in your git repo
+      composeFile = ./path/to/docker-compose.yaml;
+    };
+
+    # Optional (not usually required):
+    # backend = "docker";
+  };
 ```
 
 # Why Use Docker Compose Instead of Other Built-In Nix Options?
