@@ -2,7 +2,7 @@
   description = "A nix service that runs docker-compose.yaml files included in your nix config repo.";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-24.11-small";
+    nixpkgs.url = "nixpkgs/nixos-25.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
