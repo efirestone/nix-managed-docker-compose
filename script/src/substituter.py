@@ -10,12 +10,12 @@ class Substituter:
         self.file_system = file_system
         self.output_dir = output_dir
 
-    def substitute(self, path: Path, project_name: str, substitutions: Dict[str, str], secrets: Dict[str, str]) -> Path:
+    def substitute(self, path: Path, project_name: str, substitutions: Dict[str, str], substitutionsFromFiles: Dict[str, str]) -> Path:
         if not path.exists():
             raise Exception(f"Compose file not found: {path}")
 
         # If we're not doing any substitutions, then don't write out a new file.
-        if not substitutions and not secrets:
+        if not substitutions and not substitutionsFromFiles:
             return path
 
         template = path.read_text()
@@ -24,8 +24,8 @@ class Substituter:
         for key, value in substitutions.items():
             template = template.replace(f"${{{key}}}", value)
 
-        # Apply secrets
-        for key, secret_path in secrets.items():
+        # Apply substitutionsFromFiles (secrets)
+        for key, secret_path in substitutionsFromFiles.items():
             secret_file = Path(secret_path)
             if not secret_file.exists():
                 raise Exception(f"Secret file not found: {secret_path}")

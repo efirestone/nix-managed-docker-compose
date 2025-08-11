@@ -219,7 +219,7 @@ in {
           substitutions = {
             subbed = "test";
           };
-          secrets = {
+          substitutionsFromFiles = {
             secret = "/etc/secretpassword";
           };
         };

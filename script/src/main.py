@@ -35,7 +35,7 @@ def main():
             path=Path(app_config.get("composeFile")),
             project_name=name,
             substitutions=app_config.get("substitutions"),
-            secrets=app_config.get("secrets")
+            substitutionsFromFiles=app_config.get("substitutionsFromFiles")
         )
         current_compose_files.add(resolved_path)
 
@@ -57,7 +57,7 @@ def main():
         print(f"Unloading: {container_info.compose_file_path}")
         docker_utils.compose_down(info=container_info)
 
-        # Delete the old compose file as it contained secrets and we don't want to leave it around.
+        # Delete the old compose file as it may have contained secrets (substitutionsFromFiles) and we don't want to leave it around.
         clean_up_compose_file(container_info.compose_file_path, output_dir)
 
     for compose_file in current_compose_files:

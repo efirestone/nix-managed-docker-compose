@@ -49,10 +49,14 @@ in {
             };
           };
 
-          secrets = mkOption {
+          substitutionsFromFiles = mkOption {
             type = types.attrsOf types.path;
             default = {};
-            description = "Attribute set of variable substitutions to apply to Docker Compose files. For example, ${dbPassword} in compose.yaml will be replaced by the contents of the file specified by secrets.dbPassword.";
+            description = ''
+            Attribute set of variable substitutions to apply to Docker Compose files, with each value loaded from a file.
+            
+            For example, ${dbPassword} in compose.yaml will be replaced by the contents of the file specified by substitutionsFromFiles.dbPassword.
+            '';
             example = {
               dbPassword = "/etc/db_password";
             };
@@ -92,7 +96,7 @@ in {
         RuntimeDirectoryMode = 751;
         RuntimeDirectoryPreserve = "yes";
         Type = "simple";
-        # Resolve substitutions and secrets, and start/stop Docker Compose projects
+        # Resolve substitutions and substitutionsFromFiles, and start/stop Docker Compose projects
         ExecStart = ''
           ${managedDockerCompose}/bin/managed-docker-compose -c ${configFile} -o "/run/${resolvedFilesDirectoryName}"
         '';
